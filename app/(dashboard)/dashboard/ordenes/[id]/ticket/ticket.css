@@ -1,0 +1,168 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   ticket.css — Estilos para ticket térmico 78mm
+   Solo afecta la página del ticket. Todo el resto del dashboard no cambia.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pantalla: preview blanco centrado ─────────────────────────────────── */
+.ticket-root {
+  min-height: 100vh;
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem 6rem;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.ticket-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+/* Wrapper blanco que simula el papel */
+.ticket-paper {
+  width: 72mm;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9pt;
+  line-height: 1.4;
+  padding: 4mm;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* ── Elementos del ticket ──────────────────────────────────────────────── */
+.t-center   { text-align: center; }
+.t-bold     { font-weight: 700; }
+.t-sm       { font-size: 7.5pt; }
+.t-xs       { font-size: 6.5pt; }
+.t-xxl      { font-size: 22pt; font-weight: 900; letter-spacing: 0.05em; }
+
+.t-divider  {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 3mm 0;
+}
+
+.t-label {
+  font-size: 6pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #444;
+  margin-bottom: 1mm;
+  margin-top: 2.5mm;
+}
+
+.t-value { margin-bottom: 0; font-size: 9pt; }
+.t-value-lg { font-size: 11pt; font-weight: 700; }
+
+.t-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+}
+
+.t-col { flex: 1; }
+
+.t-qr-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 3mm 0;
+  gap: 1.5mm;
+}
+
+.t-footer-note {
+  font-size: 6.5pt;
+  color: #555;
+  text-align: center;
+  margin-top: 1.5mm;
+}
+
+/* ── Separador de corte ────────────────────────────────────────────────── */
+.cut-separator {
+  width: 72mm;
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  margin: 6mm 0;
+  color: #6b7280;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+.cut-separator::before,
+.cut-separator::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed #6b7280;
+}
+
+/* ── Header de parte 2 ─────────────────────────────────────────────────── */
+.t-part2-header {
+  background: #000;
+  color: #fff;
+  text-align: center;
+  padding: 2mm 4mm;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin: -4mm -4mm 4mm -4mm;
+}
+
+.t-blank-line {
+  border-bottom: 1px solid #000;
+  height: 5mm;
+  margin-top: 1mm;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PRINT — Se aplica al enviar a impresora
+═══════════════════════════════════════════════════════════════════════════ */
+@media print {
+  @page { margin: 0; size: 72mm auto; }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    width: 72mm !important;
+  }
+
+  /* Ocultar TODO lo que no es el ticket */
+  .ticket-root {
+    background: white !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
+  .ticket-label { display: none !important; }
+
+  .ticket-paper {
+    box-shadow: none !important;
+    width: 72mm !important;
+    padding: 2mm !important;
+  }
+
+  .cut-separator {
+    color: #000 !important;
+    margin: 2mm 0 !important;
+  }
+  .cut-separator::before,
+  .cut-separator::after {
+    border-color: #000 !important;
+  }
+
+  /* Botón de impresión */
+  .no-print { display: none !important; }
+
+  /* Parte 2 en página nueva */
+  .cut-paper { page-break-before: always; margin-top: 0 !important; }
+}
