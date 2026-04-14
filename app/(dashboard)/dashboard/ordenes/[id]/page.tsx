@@ -1,9 +1,15 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Smartphone, User, Cpu, Printer } from 'lucide-react'
+import { ArrowLeft, Smartphone, User, Cpu, Images, Printer, Wrench } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import { supabaseAdmin } from '@/utils/supabase/admin'
+import { getUserContext } from '@/utils/supabase/queries'
 import StatusUpdater from './StatusUpdater'
+import EvidenceUploader from './EvidenceUploader'
+import EditOrderDetails, { type Technician } from './EditOrderDetails'
+import FinancialEditor from './FinancialEditor'
+import OrderPartsPanel, { type InventoryPart, type OrderPart } from './OrderPartsPanel'
 
 type OrderStatus = 'received' | 'diagnosing' | 'repairing' | 'ready' | 'delivered' | 'cancelled'
 
@@ -14,7 +20,12 @@ interface RepairOrderDetail {
   brand: string
   model: string
   reported_failure: string
+  comments: string | null
+  technician_id: string | null
   created_at: string
+  estimated_cost:  number | null
+  advance_payment: number | null
+  workshop_id: string
   customers: { full_name: string; whatsapp: string | null } | { full_name: string; whatsapp: string | null }[] | null
 }
 
@@ -71,27 +82,103 @@ function formatDate(iso: string) {
   })
 }
 
+function formatMXN(amount: number | null) {
+  if (amount === null || amount === undefined) return null
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(amount)
+}
+
 function resolveCustomer(raw: RepairOrderDetail['customers']) {
   if (!raw) return null
   return Array.isArray(raw) ? raw[0] ?? null : raw
 }
 
+/* ─── Financial summary card ─────────────────────────────────────────────── */
+function FinanceCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string | null
+  accent: string
+}) {
+  return (
+    <div className={`rounded-xl border ${accent} bg-white/[0.03] p-4 flex items-start gap-3`}>
+      <div className={`mt-0.5 rounded-lg p-2 ${accent} bg-white/[0.05]`}>
+        <Icon size={15} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-white/40">{label}</p>
+        <p className="text-lg font-bold text-white truncate">
+          {value ?? <span className="text-white/25 text-sm font-normal italic">Sin definir</span>}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Evidence Gallery (server component) ────────────────────────────────── */
+interface OrderLog {
+  id: string
+  created_at: string
+  description: string | null
+  image_urls:  string[] | null
+}
+
+function EvidenceGallery({ logs }: { logs: OrderLog[] }) {
+  const allImages = logs.flatMap(l => l.image_urls ?? [])
+  if (!allImages.length) return null
+
+  return (
+    <SectionCard title="Evidencia Fotográfica" icon={Images}>
+      <div className={`grid gap-3 ${allImages.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+        {allImages.map((url, i) => (
+          <a
+            key={i}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative block rounded-xl overflow-hidden border border-white/10 bg-black/40 hover:border-violet-500/40 transition-all duration-200"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={url}
+              alt={`Evidencia ${i + 1}`}
+              loading="lazy"
+              className="block w-full"
+              style={{
+                maxHeight: '360px',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                background: 'transparent',
+              }}
+            />
+            {/* Hover overlay */}
+            <div className="absolute inset-0 flex items-end justify-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <span className="text-[10px] font-medium text-white/80 bg-black/60 px-2 py-0.5 rounded-full">
+                Ver original ↗
+              </span>
+            </div>
+          </a>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-white/25 text-right">{allImages.length} foto(s) registrada(s)</p>
+    </SectionCard>
+  )
+}
+
+
+
 export default async function OrdenDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
   const supabase = await createClient()
 
-  // ── Resolve workshop_id for multi-tenant isolation ───────────────────────
-  const { data: { user } } = await supabase.auth.getUser()
+  // ── Auth + workshop_id (cached — shared with layout) ────────────────────
+  const { workshopId } = await getUserContext()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workshop_id')
-    .eq('id', user?.id ?? '')
-    .single()
-
-  const workshopId = profile?.workshop_id ?? ''
-
-  // Scope the order query by both id AND workshop_id to prevent cross-tenant access
+  // Scope la query por id + workshop_id (aislamiento multi-tenant)
   const { data, error } = await supabase
     .from('repair_orders')
     .select('*, customers(*)')
@@ -101,9 +188,56 @@ export default async function OrdenDetailPage(props: { params: Promise<{ id: str
 
   if (error || !data) notFound()
 
-  const order = data as unknown as RepairOrderDetail
+  // ── Fetch evidence logs ──────────────────────────────────────────────────
+  const { data: logsData } = await supabase
+    .from('order_logs')
+    .select('id, created_at, description, image_urls')
+    .eq('order_id', id)
+    .not('image_urls', 'is', null)
+    .order('created_at', { ascending: true })
+
+  // ── Fetch parts assigned to this order ──────────────────────────────────
+  const { data: orderPartsData } = await supabase
+    .from('repair_order_parts')
+    .select('id, part_id, quantity, unit_price_at_sale, parts_inventory(name, brand)')
+    .eq('order_id', id)
+    .order('assigned_at', { ascending: true })
+
+  // ── Fetch this workshop's inventory (for the search picker) ─────────────
+  const { data: inventoryData } = await supabase
+    .from('parts_inventory')
+    .select('id, name, brand, sale_price, stock_quantity')
+    .eq('workshop_id', workshopId)
+    .order('name', { ascending: true })
+
+  // ── Fetch technicians for this workshop (bypass RLS — profiles may not have auth.users) ─
+  const { data: techData } = await supabaseAdmin
+    .from('profiles')
+    .select('id, full_name, role')
+    .eq('workshop_id', workshopId)
+    .eq('role', 'technician')
+    .order('full_name', { ascending: true })
+
+  const logs: OrderLog[]            = (logsData      ?? []) as OrderLog[]
+  const orderParts: OrderPart[]     = (orderPartsData ?? []) as unknown as OrderPart[]
+  const inventory:  InventoryPart[] = (inventoryData  ?? []) as InventoryPart[]
+  const technicians: Technician[]   = (techData       ?? []) as Technician[]
+
+  // Pre-compute parts subtotal for FinancialEditor
+  const partsSubtotal = orderParts.reduce(
+    (sum, op) => sum + (op.unit_price_at_sale ?? 0) * op.quantity,
+    0,
+  )
+
+  const order    = data as unknown as RepairOrderDetail
   const customer = resolveCustomer(order.customers)
-  const folio = order.id.slice(-6).toUpperCase()
+  const folio    = order.id.slice(-6).toUpperCase()
+
+  const estimatedCost  = order.estimated_cost  ?? null
+  const advancePayment = order.advance_payment ?? null
+  // Total = mano de obra + refacciones asignadas
+  const totalCost      = estimatedCost !== null ? estimatedCost + partsSubtotal : null
+  const balance        = totalCost !== null ? totalCost - (advancePayment ?? 0) : null
 
   return (
     <div className="space-y-6">
@@ -128,6 +262,14 @@ export default async function OrdenDetailPage(props: { params: Promise<{ id: str
           <p className="text-sm text-slate-500 capitalize">{formatDate(order.created_at)}</p>
         </div>
       </div>
+
+      {/* ── Financial summary cards ──────────────────────── */}
+      <FinancialEditor
+        orderId={order.id}
+        estimatedCost={estimatedCost}
+        advancePayment={advancePayment}
+        partsSubtotal={partsSubtotal}
+      />
 
       {/* ── Two-column grid ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -159,28 +301,43 @@ export default async function OrdenDetailPage(props: { params: Promise<{ id: str
             )}
           </SectionCard>
 
+          {/* Equipment — now editable */}
           <SectionCard title="Datos del Equipo" icon={Cpu}>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
-              <DetailRow label="Tipo de equipo" value={order.device_type} />
-              <DetailRow label="Marca"          value={order.brand} />
-              <DetailRow label="Modelo"         value={order.model} />
-            </dl>
-            <div className="pt-5 border-t border-white/5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                Falla reportada
-              </p>
-              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap rounded-xl bg-white/[0.03] border border-white/5 px-4 py-3">
-                {order.reported_failure}
-              </p>
-            </div>
+            <EditOrderDetails
+              orderId={order.id}
+              device_type={order.device_type}
+              brand={order.brand}
+              model={order.model}
+              reported_failure={order.reported_failure}
+              comments={order.comments}
+              technician_id={order.technician_id}
+              technicians={technicians}
+            />
           </SectionCard>
+
+          {/* Refacciones asignadas */}
+          <SectionCard title="Refacciones Asignadas" icon={Wrench}>
+            <OrderPartsPanel
+              orderId={order.id}
+              orderParts={orderParts}
+              inventory={inventory}
+            />
+          </SectionCard>
+
+          {/* Evidence gallery — persistent across refreshes */}
+          <EvidenceGallery logs={logs} />
         </div>
 
         {/* Right: actions */}
         <div className="space-y-5">
-          <StatusUpdater orderId={order.id} currentStatus={order.status} />
+          <StatusUpdater
+            orderId={order.id}
+            currentStatus={order.status}
+            balance={balance}
+            estimatedCost={estimatedCost}
+            advancePayment={advancePayment}
+          />
 
-          {/* Folio card */}
           <div className="rounded-2xl border border-white/5 bg-slate-900/50 p-6 space-y-2">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Folio de orden</p>
             <p className="font-mono text-3xl font-bold text-indigo-400 tracking-widest">#{folio}</p>
@@ -195,6 +352,9 @@ export default async function OrdenDetailPage(props: { params: Promise<{ id: str
               Imprimir Ticket
             </Link>
           </div>
+
+          {/* Evidence uploader */}
+          <EvidenceUploader orderId={order.id} workshopId={workshopId} />
         </div>
       </div>
     </div>

@@ -111,8 +111,6 @@ export default function WorkshopsTable({ workshops }: Props) {
                   { label: 'Nombre',   icon: Building2 },
                   { label: 'Plan',     icon: Sparkles  },
                   { label: 'Estado',   icon: Zap       },
-                  { label: 'Vence',    icon: Calendar  },
-                  { label: 'ID',       icon: Hash      },
                 ].map(({ label, icon: Icon }) => (
                   <th key={label} className="px-5 py-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-white/25">
                     <span className="inline-flex items-center gap-1.5">
@@ -121,6 +119,20 @@ export default function WorkshopsTable({ workshops }: Props) {
                     </span>
                   </th>
                 ))}
+                {/* Vence — hidden on mobile */}
+                <th className="px-5 py-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-white/25 hidden md:table-cell">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar size={11} />
+                    Vence
+                  </span>
+                </th>
+                {/* ID — hidden on mobile */}
+                <th className="px-5 py-3 text-[10px] font-mono font-semibold uppercase tracking-widest text-white/25 hidden md:table-cell">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Hash size={11} />
+                    ID
+                  </span>
+                </th>
                 <th className="px-3 py-3 w-10" />
               </tr>
             </thead>
@@ -161,8 +173,8 @@ export default function WorkshopsTable({ workshops }: Props) {
                       </span>
                     </td>
 
-                    {/* End date */}
-                    <td className={`px-5 py-4 text-xs tabular-nums whitespace-nowrap`}>
+                    {/* End date — hidden on mobile */}
+                    <td className={`px-5 py-4 text-xs tabular-nums whitespace-nowrap hidden md:table-cell`}>
                       <span className={isExpired ? 'text-red-400 font-semibold' : 'text-white/30'}>
                         {formatDate(w.subscription_end_date)}
                       </span>
@@ -173,8 +185,8 @@ export default function WorkshopsTable({ workshops }: Props) {
                       )}
                     </td>
 
-                    {/* UUID short */}
-                    <td className="px-5 py-4">
+                    {/* UUID short — hidden on mobile */}
+                    <td className="px-5 py-4 hidden md:table-cell">
                       <span className="font-mono text-[11px] text-white/30 group-hover:text-white/50 transition-colors">
                         {w.id.slice(0, 8)}…
                       </span>

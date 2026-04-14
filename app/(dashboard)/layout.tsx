@@ -1,19 +1,20 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { AlertTriangle, MessageCircle, LogOut } from 'lucide-react'
-import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/utils/supabase/admin'
+import { getUserContext } from '@/utils/supabase/queries'
 import { signOutAction } from '@/app/actions/auth'
 import Sidebar from '@/app/(dashboard)/components/Sidebar'
 import LogoutButton from '@/app/(dashboard)/components/LogoutButton'
+import { MobileHeader } from '@/app/(dashboard)/components/MobileDrawer'
 
 export const metadata: Metadata = {
   title: 'GRP Workspace',
   description: 'Panel de gestión de talleres de reparación electrónica.',
 }
 
-// WhatsApp number the tenant contacts to renew (replace with your real number)
-const SUPPORT_WHATSAPP = process.env.SUPPORT_WHATSAPP_NUMBER ?? '521XXXXXXXXXX'
+// WhatsApp de soporte para renovación de suscripción
+const SUPPORT_WHATSAPP = process.env.SUPPORT_WHATSAPP_NUMBER ?? ''
 
 /**
  * Checks whether a workshop's subscription is still valid.
@@ -31,9 +32,8 @@ function isExpired(
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // ── 1. Auth ───────────────────────────────────────────────────────────
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // ── 1. Auth (cached — shared with child pages via React.cache) ────────
+  const { user, workshopId } = await getUserContext()
 
   // ── 2. Super-admin is always exempt from subscription checks ──────────
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL ?? ''
@@ -41,28 +41,20 @@ export default async function DashboardLayout({
     return <NormalLayout>{children}</NormalLayout>
   }
 
-  // ── 3. Look up this user's workshop subscription via their profile ─────
+  // ── 3. Look up this user's workshop subscription ───────────────────────
   let blocked = false
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('workshop_id')
-      .eq('id', user.id)
+  if (workshopId) {
+    const { data: workshop } = await supabaseAdmin
+      .from('workshops')
+      .select('subscription_status, subscription_end_date')
+      .eq('id', workshopId)
       .single()
 
-    if (profile?.workshop_id) {
-      const { data: workshop } = await supabaseAdmin
-        .from('workshops')
-        .select('subscription_status, subscription_end_date')
-        .eq('id', profile.workshop_id)
-        .single()
-
-      blocked = isExpired(
-        workshop?.subscription_status ?? null,
-        workshop?.subscription_end_date ?? null,
-      )
-    }
+    blocked = isExpired(
+      workshop?.subscription_status ?? null,
+      workshop?.subscription_end_date ?? null,
+    )
   }
 
   if (blocked) {
@@ -75,20 +67,23 @@ export default async function DashboardLayout({
 /* ─── Normal dashboard shell ──────────────────────────────────────────────── */
 function NormalLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex bg-[#080b14]">
-      {/* ── Sidebar ───────────────────────────────────────────────── */}
+    <div className="h-screen flex overflow-hidden bg-[#080b14]">
+      {/* ── Sidebar (desktop only — hidden on mobile via its own CSS) ── */}
       <Sidebar />
 
-      {/* ── Main content ──────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top navbar */}
-        <header className="h-16 flex items-center justify-between px-6 border-b border-white/5 bg-slate-900/40 backdrop-blur-md shrink-0">
+      {/* ── Main content area ─────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Mobile top bar (hamburger) — hidden on md+ */}
+        <MobileHeader />
+
+        {/* Desktop top navbar — hidden on mobile */}
+        <header className="hidden md:flex h-16 items-center justify-between px-6 border-b border-white/5 bg-slate-900/40 backdrop-blur-md shrink-0">
           <p className="text-sm text-slate-500">Panel de control</p>
           <LogoutButton />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        {/* Page content — only this scrolls */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
       </div>

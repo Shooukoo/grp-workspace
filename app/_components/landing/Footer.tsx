@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 
-const WA_LINK = 'https://wa.me/5213531373007?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise'
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+const WA_LINK = `https://wa.me/${WA_NUMBER}?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise`
 
 export default function Footer() {
   const year = new Date().getFullYear()

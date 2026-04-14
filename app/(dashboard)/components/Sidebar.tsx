@@ -7,21 +7,23 @@ import {
   Users,
   Wrench,
   UserCog,
+  Package,
   Zap,
 } from 'lucide-react'
 
-const NAV_ITEMS = [
-  { href: '/dashboard',           icon: LayoutDashboard, label: 'Inicio'     },
-  { href: '/dashboard/clientes',  icon: Users,           label: 'Clientes'   },
-  { href: '/dashboard/ordenes',   icon: Wrench,          label: 'Órdenes'    },
-  { href: '/dashboard/empleados', icon: UserCog,         label: 'Empleados'  },
+export const NAV_ITEMS = [
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Inicio'      },
+  { href: '/dashboard/clientes',     icon: Users,           label: 'Clientes'    },
+  { href: '/dashboard/ordenes',      icon: Wrench,          label: 'Órdenes'     },
+  { href: '/dashboard/empleados',    icon: UserCog,         label: 'Empleados'   },
+  { href: '/dashboard/inventario',   icon: Package,         label: 'Inventario'  },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 shrink-0 flex flex-col bg-slate-900/60 backdrop-blur-xl border-r border-white/5">
+    <aside className="w-64 shrink-0 hidden md:flex flex-col bg-slate-900/60 backdrop-blur-xl border-r border-white/5 sticky top-0 h-screen overflow-y-auto">
       {/* ── Logo ────────────────────────────────────────────────────── */}
       <div className="h-16 flex items-center px-5 border-b border-white/5">
         <div className="flex items-center gap-3">

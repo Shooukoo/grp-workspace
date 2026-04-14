@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Zap, Menu, X } from 'lucide-react'
 
-const WA_LINK = 'https://wa.me/5213531373007?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise'
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+const WA_LINK = `https://wa.me/${WA_NUMBER}?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise`
 const NAV_LINKS = [
   { href: '#caracteristicas', label: 'Características' },
   { href: '#precios',         label: 'Precios'          },

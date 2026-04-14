@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { UserCog, Plus, AlertTriangle } from 'lucide-react'
-import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/utils/supabase/admin'
+import { getUserContext } from '@/utils/supabase/queries'
 import NewEmployeeButton from './NewEmployeeButton'
 
 export const metadata: Metadata = {
@@ -40,20 +40,13 @@ function formatDate(iso: string) {
 }
 
 export default async function EmpleadosPage() {
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: myProfile } = await supabase
-    .from('profiles')
-    .select('workshop_id')
-    .eq('id', user?.id ?? '')
-    .single()
+  // ── Auth + workshop_id (cached — shared with layout, no extra RTTs) ──────
+  const { workshopId } = await getUserContext()
 
   const { data: employees, error } = await supabaseAdmin
     .from('profiles')
     .select('id, full_name, role, created_at')
-    .eq('workshop_id', myProfile?.workshop_id ?? '')
+    .eq('workshop_id', workshopId)
     .order('created_at', { ascending: true })
 
   const rows: Employee[] = (employees as Employee[]) ?? []

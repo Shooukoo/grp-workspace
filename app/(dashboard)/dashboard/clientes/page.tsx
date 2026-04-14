@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Users, Smartphone } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import { getUserContext } from '@/utils/supabase/queries'
 import NewCustomerButton from './NewCustomerButton'
 
 export const metadata: Metadata = {
@@ -24,9 +25,14 @@ function formatDate(iso: string) {
 export default async function ClientesPage() {
   const supabase = await createClient()
 
+  // ── Auth + workshop_id (cached — shared with layout, no extra RTTs) ──────
+  const { workshopId } = await getUserContext()
+
+  // ── Customers scoped to this workshop only ──────────────────────────
   const { data: customers, error } = await supabase
     .from('customers')
     .select('id, full_name, whatsapp, created_at')
+    .eq('workshop_id', workshopId)
     .order('created_at', { ascending: false })
 
   const rows: Customer[] = customers ?? []

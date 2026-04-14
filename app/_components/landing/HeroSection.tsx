@@ -4,7 +4,8 @@ import { useRef } from 'react'
 import { motion, useInView } from 'framer-motion'
 import { MessageSquare, ArrowDown } from 'lucide-react'
 
-const WA_LINK = 'https://wa.me/521XXXXXXXXXX?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise'
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ''
+const WA_LINK = `https://wa.me/${WA_NUMBER}?text=Hola%2C%20me%20interesa%20RepairLab%20Enterprise`
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 

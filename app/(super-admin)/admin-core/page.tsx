@@ -32,18 +32,18 @@ export default async function AdminCorePage() {
   const rows: WorkshopForEdit[] = (workshops as WorkshopForEdit[]) ?? []
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2.5">
-            <ShieldAlert size={18} className="text-red-400" />
+            <ShieldAlert size={18} className="text-red-400 shrink-0" />
             <h1 className="text-xl font-bold tracking-tight text-white">
               Centro de Mando
             </h1>
           </div>
-          <p className="text-xs text-white/30 font-mono">
+          <p className="text-xs text-white/30 font-mono truncate">
             {rows.length} taller{rows.length !== 1 ? 'es' : ''} registrado{rows.length !== 1 ? 's' : ''}
             &nbsp;·&nbsp;
             Sesión: <span className="text-white/50">{user.email}</span>

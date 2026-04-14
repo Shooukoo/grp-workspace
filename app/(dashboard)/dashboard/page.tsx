@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Wrench, Users, CheckCircle2, Plus, ArrowRight } from 'lucide-react'
 import { createClient } from '@/utils/supabase/server'
+import { getUserContext } from '@/utils/supabase/queries'
 
 export const metadata: Metadata = {
   title: 'Panel Principal | GRP Workspace',
@@ -43,21 +44,21 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  /* ── 1. Auth + workshop_id ─────────────────────────────────────────── */
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('workshop_id')
-    .eq('id', user?.id ?? '')
-    .single()
-
-  const workshopId = profile?.workshop_id ?? ''
+  /* ── 1. Auth + workshop_id (cached — shared with layout, no extra RTTs) ── */
+  const { workshopId } = await getUserContext()
 
   /* ── 2. Concurrent queries ─────────────────────────────────────────── */
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
-  const todayISO = todayStart.toISOString()
+  // Calcula medianoche de HOY en zona horaria México (UTC-6 / UTC-5 en verano).
+  // Usamos Intl para obtener la fecha local correcta sin hardcodear el offset.
+  const nowUtc = new Date()
+  const mxDateParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(nowUtc)
+  const mxDateStr = mxDateParts.map(p => p.value).join('') // 'YYYY-MM-DD'
+  // Construir la medianoche México como timestamp UTC
+  const startOfDayMexicoUTC = new Date(`${mxDateStr}T00:00:00-06:00`)
+  const todayISO = startOfDayMexicoUTC.toISOString()
 
   const [
     { count: activeCount },
@@ -78,13 +79,14 @@ export default async function DashboardPage() {
       .select('*', { count: 'exact', head: true })
       .eq('workshop_id', workshopId),
 
-    // Entregadas hoy — usa updated_at si existe, fallback a created_at
+    // Entregadas hoy — compara updated_at (ahora se establece en updateOrderStatusAction)
     supabase
       .from('repair_orders')
       .select('*', { count: 'exact', head: true })
       .eq('workshop_id', workshopId)
       .eq('status', 'delivered')
       .gte('updated_at', todayISO),
+
 
     // Últimas 5 órdenes activas con cliente
     supabase
