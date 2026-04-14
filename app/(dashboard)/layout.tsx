@@ -9,8 +9,12 @@ import LogoutButton from '@/app/(dashboard)/components/LogoutButton'
 import { MobileHeader } from '@/app/(dashboard)/components/MobileDrawer'
 
 export const metadata: Metadata = {
-  title: 'GRP Workspace',
+  title: 'Panel',
   description: 'Panel de gestión de talleres de reparación electrónica.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 // WhatsApp de soporte para renovación de suscripción

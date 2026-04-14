@@ -1,8 +1,12 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Acceso | GRP Workspace',
-  description: 'Inicia sesión para acceder al panel de gestión de talleres.',
+  title: 'Acceso | RepairLab Enterprise',
+  description: 'Inicia sesión para acceder al panel de gestión de RepairLab Enterprise.',
+  robots: {
+    index: false,
+    follow: false,
+  },
 }
 
 /**

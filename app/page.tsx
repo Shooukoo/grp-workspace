@@ -7,14 +7,12 @@ import FAQSection     from '@/app/_components/landing/FAQSection'
 import Footer         from '@/app/_components/landing/Footer'
 
 export const metadata: Metadata = {
-  title: 'RepairLab Enterprise — El sistema operativo para tu taller de reparación',
+  title: 'El sistema operativo para tu taller de reparación',
   description:
-    'Gestiona órdenes, técnicos y clientes en un solo panel. SaaS multi-tenant diseñado para talleres de reparación electrónica. Solicita acceso ahora.',
-  keywords: ['taller reparación', 'software taller', 'gestión órdenes', 'RepairLab', 'SaaS México'],
+    'Gestiona órdenes, técnicos y clientes en un solo panel. SaaS para talleres de reparación electrónica. Solicita acceso a RepairLab Enterprise ahora.',
   openGraph: {
-    title: 'RepairLab Enterprise',
-    description: 'El sistema operativo definitivo para tu taller de reparación.',
-    type: 'website',
+    title: 'RepairLab Enterprise — El sistema operativo para tu taller de reparación',
+    description: 'Gestiona órdenes, técnicos y clientes en un solo panel. SaaS multi-tenant diseñado para talleres de reparación.',
   },
 }
 
